@@ -1,0 +1,82 @@
+Rodent's Revenge — How to play (local)
+
+------------------------------------------------------------------------------
+RUN THE GAME
+------------------------------------------------------------------------------
+1. Open a terminal in this folder:
+   rodents-revenge-web
+
+2. Install dependencies (first time only):
+   npm install
+
+3. Start the dev server:
+   npm run dev
+
+4. Open the URL shown in the terminal (usually http://localhost:5173) in your
+   web browser.
+
+------------------------------------------------------------------------------
+CONTROLS
+------------------------------------------------------------------------------
+- Keyboard: Arrow keys (↑ ↓ ← →) — one tile per press.
+- Touch / mobile: swipe on the game board; a short swipe picks a direction.
+
+------------------------------------------------------------------------------
+GOAL
+------------------------------------------------------------------------------
+- You control the yellow rodent (mouse).
+- Red dots chase you about every half second.
+- Turn red dots into green cheese, then walk onto the green tiles to eat them
+  and score points (+100 per cheese).
+- Clear the level when every red dot has been converted AND every green cheese
+  has been eaten.
+
+------------------------------------------------------------------------------
+BLOCKS AND RED DOTS
+------------------------------------------------------------------------------
+- Gray blocks can be pushed in a straight line when there is room.
+- If several blocks are touching in that line, pushing one moves the whole
+  chain (chain push).
+
+- Blocks can PUSH red dots ahead of them like a sliding train:
+  yellow -> block(s) -> red dot -> empty spaces ...
+  Each time you push, the whole chain moves ONE tile toward the gap. Keep
+  pushing until the trailing red dot is against an outer wall (or immovable
+  block ahead). Its last cell turns into green cheese — then you can eat it.
+
+------------------------------------------------------------------------------
+TRAPPING RED DOTS (GREEN CHEESE)
+------------------------------------------------------------------------------
+- A red dot can become green cheese when it is trapped, for example:
+  - Blocked on all four sides by walls and/or blocks (with the rules the game
+    uses for “open” vs “closed” sides), OR
+  - Squeezed between a block and a wall on opposite sides (per game logic).
+- You can also convert a red dot by pushing a line of blocks so it is crushed
+  against an outer wall (wall squeeze).
+
+------------------------------------------------------------------------------
+LEVELS
+------------------------------------------------------------------------------
+- When you see “Level N complete”, click “Continue?” to start the next level.
+- Later levels can add more red dots. Your score carries forward.
+
+------------------------------------------------------------------------------
+LOSING
+------------------------------------------------------------------------------
+- If a red dot moves onto your tile, you lose. Use “Restart” to try again.
+
+------------------------------------------------------------------------------
+ON-SCREEN BUTTONS
+------------------------------------------------------------------------------
+- Help — short in-game tips.
+- Restart — new game from Level 1 with score reset to 0.
+
+HIGH SCORE (BOTTOM OF SCREEN)
+------------------------------------------------------------------------------
+- Shows the best number of levels you have cleared in any run on this browser.
+  It updates when you finish a level (before Continue).
+
+DIFFICULTY RAMP
+------------------------------------------------------------------------------
+- Red dots move on a timer. Each level they get about 10% faster until level
+  20 (fastest). Shown in the header as “enemies every X ms”.
