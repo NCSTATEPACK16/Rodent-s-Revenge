@@ -8,10 +8,18 @@ export const GRID_SIZE = 20
 
 export type Vec = { x: number; y: number }
 
+/**
+ * A cat is a positioned entity with optional stable identity. `id` is assigned
+ * when a level is built and preserved across moves/ticks/traps, so the renderer
+ * can animate each cat continuously (and play a correct exit when one is
+ * trapped). Engine unit tests construct cats without an `id`, which is fine.
+ */
+export type Cat = Vec & { id?: number }
+
 export type GameSnapshot = {
   grid: Tile[][]
   mouse: Vec
-  cats: Vec[]
+  cats: Cat[]
   status: GameStatus
   level: number
   score: number

@@ -85,7 +85,7 @@ function buildLevel(level: number, score: number): GameSnapshot {
   const config = getLevelConfig(level)
   const mouse: Vec = { ...MOUSE_START }
   const catCount = Math.min(config.catCount ?? 2 + level, CAT_SPAWNS.length)
-  const cats = CAT_SPAWNS.slice(0, catCount).map((c) => ({ ...c }))
+  const cats = CAT_SPAWNS.slice(0, catCount).map((c, i) => ({ ...c, id: i }))
 
   // A cell is reserved if it holds the mouse, an active cat, or a border wall —
   // config tiles placed there are skipped so layouts are always playable.
@@ -409,7 +409,8 @@ export function stepCats(snapshot: GameSnapshot): GameSnapshot {
 
   for (let i = 0; i < cats.length; i++) {
     const step = tryCatStep(cats[i], mouse, grid, cats, i)
-    if (step) cats[i] = step
+    // Preserve the cat's identity (id) while updating its position.
+    if (step) cats[i] = { ...cats[i], x: step.x, y: step.y }
 
     if (cats[i].x === mouse.x && cats[i].y === mouse.y) {
       return { ...snapshot, grid, mouse, cats, status: 'lost' }
