@@ -11,8 +11,8 @@ type GameBoardProps = {
 
 const SWIPE_THRESHOLD_PX = 30
 
-/** Spring used for actor (mouse/cat) movement — short and snappy. */
-const moveSpring = { type: 'spring', stiffness: 700, damping: 40, mass: 0.6 } as const
+/** Spring used for actor (mouse/cat) movement — smooth glide, not a snap. */
+const moveSpring = { type: 'spring', stiffness: 360, damping: 30, mass: 0.9 } as const
 
 const tileBase =
   'border border-slate-800/60 min-h-0 min-w-0 aspect-square'
@@ -136,10 +136,11 @@ export function GameBoard({ snapshot, onSwipe, surfaceProps }: GameBoardProps) {
           <AnimatePresence>
             {cats.map((c, i) => (
               <motion.div
-                // Cats keep array order during normal play (movement animates
-                // smoothly); a trapped cat is removed, which may briefly shift
-                // indices — acceptable since it coincides with the cat→cheese pop.
-                key={`cat-${i}`}
+                // Stable per-cat id (assigned at level build, preserved across
+                // moves/ticks/traps) so each cat animates continuously and a
+                // trapped cat plays the correct exit. Falls back to index only
+                // for engine-test snapshots that omit ids.
+                key={`cat-${c.id ?? i}`}
                 className="absolute flex items-center justify-center"
                 style={sizeStyle}
                 initial={{ ...posStyle(c.x, c.y), opacity: 0, scale: 0.5 }}

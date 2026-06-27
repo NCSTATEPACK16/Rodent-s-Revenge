@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LEVELS, getLevelConfig } from './levels'
-import { createInitialState, continueToNextLevel } from './rodentEngine'
+import { createInitialState, continueToNextLevel, stepCats } from './rodentEngine'
 import { GRID_SIZE } from './types'
 
 const MOUSE_START = { x: 10, y: 10 }
@@ -51,5 +51,22 @@ describe('engine consumes level configs', () => {
     for (const cat of s.cats) {
       expect(s.grid[cat.y][cat.x]).toBe('empty')
     }
+  })
+})
+
+describe('cat identity', () => {
+  it('assigns unique ids to built cats', () => {
+    const ids = createInitialState().cats.map((c) => c.id)
+    expect(ids).toEqual([0, 1, 2])
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('preserves a cat id across a step', () => {
+    const before = createInitialState()
+    const after = stepCats(before)
+    // Same number of cats (none trapped on the first tick); ids unchanged.
+    expect(after.cats.map((c) => c.id).sort()).toEqual(
+      before.cats.map((c) => c.id).sort(),
+    )
   })
 })
