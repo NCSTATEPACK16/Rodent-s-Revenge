@@ -5,6 +5,7 @@ import {
   type Vec,
   GRID_SIZE,
 } from './types'
+import { getLevelConfig } from './levels'
 
 const W = GRID_SIZE
 const H = GRID_SIZE
@@ -57,6 +58,18 @@ function withResolvedStatus(snapshot: GameSnapshot): GameSnapshot {
   return { ...snapshot, status: 'playing' }
 }
 
+const CAT_SPAWNS: Vec[] = [
+  { x: 10, y: 5 },
+  { x: 6, y: 10 },
+  { x: 14, y: 10 },
+  { x: 5, y: 5 },
+  { x: 15, y: 15 },
+  { x: 5, y: 15 },
+  { x: 15, y: 5 },
+]
+
+const MOUSE_START: Vec = { x: 10, y: 10 }
+
 function buildLevel(level: number, score: number): GameSnapshot {
   const grid = emptyGrid()
 
@@ -69,47 +82,28 @@ function buildLevel(level: number, score: number): GameSnapshot {
     grid[y][W - 1] = 'wall'
   }
 
-  const blocks: Vec[] = [
-    { x: 4, y: 4 },
-    { x: 5, y: 4 },
-    { x: 14, y: 4 },
-    { x: 15, y: 4 },
-    { x: 4, y: 14 },
-    { x: 5, y: 14 },
-    { x: 14, y: 14 },
-    { x: 15, y: 14 },
-    { x: 9, y: 7 },
-    { x: 10, y: 7 },
-    { x: 9, y: 12 },
-    { x: 10, y: 12 },
-    { x: 7, y: 9 },
-    { x: 12, y: 9 },
-    { x: 7, y: 10 },
-    { x: 12, y: 10 },
-    { x: 8, y: 8 },
-    { x: 11, y: 8 },
-    { x: 8, y: 11 },
-    { x: 11, y: 11 },
-  ]
-  for (const b of blocks) grid[b.y][b.x] = 'block'
+  const config = getLevelConfig(level)
+  const mouse: Vec = { ...MOUSE_START }
+  const catCount = Math.min(config.catCount ?? 2 + level, CAT_SPAWNS.length)
+  const cats = CAT_SPAWNS.slice(0, catCount).map((c) => ({ ...c }))
 
-  // Loop 2: seed a cracked block and a powerup tile for demonstration.
-  // Full level-design integration comes in a later loop.
-  grid[3][10] = 'cracked'
-  grid[6][10] = 'powerup'
-
-  const mouse: Vec = { x: 10, y: 10 }
-  const catSpawns: Vec[] = [
-    { x: 10, y: 5 },
-    { x: 6, y: 10 },
-    { x: 14, y: 10 },
-    { x: 5, y: 5 },
-    { x: 15, y: 15 },
-    { x: 5, y: 15 },
-    { x: 15, y: 5 },
-  ]
-  const catCount = Math.min(2 + level, catSpawns.length)
-  const cats = catSpawns.slice(0, catCount)
+  // A cell is reserved if it holds the mouse, an active cat, or a border wall —
+  // config tiles placed there are skipped so layouts are always playable.
+  const isReserved = (x: number, y: number): boolean => {
+    if (isOutOfBounds(x, y)) return true
+    if (grid[y][x] === 'wall') return true
+    if (mouse.x === x && mouse.y === y) return true
+    return cats.some((c) => c.x === x && c.y === y)
+  }
+  const place = (cells: Vec[] | undefined, tile: Tile): void => {
+    if (!cells) return
+    for (const c of cells) {
+      if (!isReserved(c.x, c.y)) grid[c.y][c.x] = tile
+    }
+  }
+  place(config.blocks, 'block')
+  place(config.cracked, 'cracked')
+  place(config.powerups, 'powerup')
 
   return { grid, mouse, cats, status: 'playing', level, score, superMouseTurns: 0 }
 }

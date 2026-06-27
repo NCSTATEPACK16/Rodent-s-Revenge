@@ -1,0 +1,21 @@
+# Render Blueprint for the Vermin's Vengeance leaderboard API.
+# Create the service via Render → "New +" → "Blueprint" pointing at this repo.
+# DATABASE_URL (Supabase pooler URL) and ALLOWED_ORIGINS (your Netlify origin)
+# are marked sync:false — set them as secrets in the Render dashboard.
+
+services:
+  - type: web
+    name: vermins-vengeance-api
+    runtime: python
+    plan: free
+    rootDir: server
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.12"
