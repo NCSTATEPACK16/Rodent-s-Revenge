@@ -1,5 +1,6 @@
 import { useRef, type HTMLAttributes, type ReactNode } from 'react'
-import type { GameSnapshot } from '../game/types'
+import { AnimatePresence, motion } from 'framer-motion'
+import type { GameSnapshot, Tile } from '../game/types'
 
 type GameBoardProps = {
   snapshot: GameSnapshot
@@ -10,15 +11,22 @@ type GameBoardProps = {
 
 const SWIPE_THRESHOLD_PX = 30
 
-const tileBase =
-  'relative flex items-center justify-center min-h-0 min-w-0 border border-slate-800/60 aspect-square'
+/** Spring used for actor (mouse/cat) movement — short and snappy. */
+const moveSpring = { type: 'spring', stiffness: 700, damping: 40, mass: 0.6 } as const
 
-function tileBackground(tile: GameSnapshot['grid'][number][number]): string {
+const tileBase =
+  'border border-slate-800/60 min-h-0 min-w-0 aspect-square'
+
+function tileBackground(tile: Tile): string {
   switch (tile) {
     case 'wall':
       return 'bg-slate-800'
     case 'block':
       return 'bg-zinc-600 shadow-inner'
+    case 'cracked':
+      return 'bg-zinc-700/70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(0,0,0,0.35)_3px,rgba(0,0,0,0.35)_4px)]'
+    case 'powerup':
+      return 'bg-indigo-950/50'
     case 'cheese':
       return 'bg-emerald-950/45'
     default:
@@ -30,33 +38,25 @@ export function GameBoard({ snapshot, onSwipe, surfaceProps }: GameBoardProps) {
   const { grid, mouse, cats } = snapshot
   const touchOrigin = useRef<{ x: number; y: number } | null>(null)
 
-  const cells: ReactNode[] = []
-  for (let y = 0; y < grid.length; y++) {
-    for (let x = 0; x < grid[y].length; x++) {
-      const tile = grid[y][x]
-      const isMouse = mouse.x === x && mouse.y === y
-      const catHere = cats.some((c) => c.x === x && c.y === y)
+  const rows = grid.length
+  const cols = grid[0]?.length ?? 0
 
+  // Static background layer: walls, blocks, cracked, cheese, powerups.
+  const cells: ReactNode[] = []
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const tile = grid[y][x]
       cells.push(
-        <div
-          key={`${x}-${y}`}
-          className={`${tileBase} ${tileBackground(tile)}`}
-        >
-          {isMouse && (
+        <div key={`${x}-${y}`} className={`relative ${tileBase} ${tileBackground(tile)}`}>
+          {tile === 'cheese' && (
             <span
-              className="z-10 h-[62%] w-[62%] rounded-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.7)]"
+              className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-emerald-400/90 opacity-90"
               aria-hidden
             />
           )}
-          {catHere && (
+          {tile === 'powerup' && (
             <span
-              className={`h-[62%] w-[62%] rounded-sm bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.55)] ${isMouse ? 'absolute z-20' : ''}`}
-              aria-hidden
-            />
-          )}
-          {tile === 'cheese' && !isMouse && !catHere && (
-            <span
-              className="absolute h-2.5 w-2.5 rounded-sm bg-emerald-400/90 opacity-90"
+              className="absolute left-1/2 top-1/2 h-2/5 w-2/5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.7)]"
               aria-hidden
             />
           )}
@@ -64,6 +64,15 @@ export function GameBoard({ snapshot, onSwipe, surfaceProps }: GameBoardProps) {
       )
     }
   }
+
+  // Position/size helpers (percent of board) for the animated actor overlay.
+  const sizeStyle = { width: `${100 / cols}%`, height: `${100 / rows}%` }
+  const posStyle = (x: number, y: number) => ({
+    left: `${(x / cols) * 100}%`,
+    top: `${(y / rows) * 100}%`,
+  })
+
+  const superMouse = snapshot.superMouseTurns > 0
 
   return (
     <div
@@ -93,14 +102,57 @@ export function GameBoard({ snapshot, onSwipe, surfaceProps }: GameBoardProps) {
         surfaceProps?.className ?? '',
       ].join(' ')}
     >
-      <div
-        className="grid h-full w-full bg-slate-950"
-        style={{
-          gridTemplateColumns: 'repeat(20, minmax(0, 1fr))',
-          gridTemplateRows: 'repeat(20, minmax(0, 1fr))',
-        }}
-      >
-        {cells}
+      <div className="relative h-full w-full bg-slate-950">
+        <div
+          className="grid h-full w-full"
+          style={{
+            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+          }}
+        >
+          {cells}
+        </div>
+
+        {/* Animated actor overlay — mouse + cats glide between cells. */}
+        <div className="pointer-events-none absolute inset-0">
+          <motion.div
+            className="absolute flex items-center justify-center"
+            style={sizeStyle}
+            animate={posStyle(mouse.x, mouse.y)}
+            transition={moveSpring}
+            aria-hidden
+          >
+            <motion.span
+              className={`h-[62%] w-[62%] rounded-full bg-amber-400 [transform:translateZ(0)] will-change-transform ${
+                superMouse
+                  ? 'shadow-[0_0_18px_rgba(129,140,248,0.9)] ring-2 ring-indigo-300'
+                  : 'shadow-[0_0_12px_rgba(251,191,36,0.7)]'
+              }`}
+              animate={superMouse ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+              transition={superMouse ? { duration: 0.8, repeat: Infinity } : { duration: 0.2 }}
+            />
+          </motion.div>
+
+          <AnimatePresence>
+            {cats.map((c, i) => (
+              <motion.div
+                // Cats keep array order during normal play (movement animates
+                // smoothly); a trapped cat is removed, which may briefly shift
+                // indices — acceptable since it coincides with the cat→cheese pop.
+                key={`cat-${i}`}
+                className="absolute flex items-center justify-center"
+                style={sizeStyle}
+                initial={{ ...posStyle(c.x, c.y), opacity: 0, scale: 0.5 }}
+                animate={{ ...posStyle(c.x, c.y), opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.3 }}
+                transition={moveSpring}
+                aria-hidden
+              >
+                <span className="h-[62%] w-[62%] rounded-sm bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.55)] [transform:translateZ(0)] will-change-transform" />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   )

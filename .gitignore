@@ -8,12 +8,23 @@ node_modules/
 !.yarn/releases
 !.yarn/versions
 
+# ---------- Local agent notes (keep out of GitHub) ----------
+CLAUDE.md
+
 # ---------- Build output ----------
 dist/
 dist-ssr/
 build/
 out/
 *.local
+
+# ---------- Python (server/) ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
 
 # ---------- Vite / bundler caches ----------
 .vite/

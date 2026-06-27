@@ -1,53 +1,47 @@
-# Rodent's Revenge — Modern Remake
+# Vermin's Vengeance
 
-> ⚠️ **Working title.** "Rodent's Revenge" is the name of the 1991 Microsoft
-> Entertainment Pack puzzle game this project is inspired by. The repo will be
-> **renamed before any public release** and shipped under an original name
-> (see [Naming & IP](#naming--ip)).
+A modern, web-first grid puzzle game: you're a mouse on a 20×20 board, pushing
+block chains to trap pursuing cats and turn them into cheese for points,
+surviving as the cats speed up each level. Inspired by the 1991 classic; built
+with a decoupled engine so an iOS (React Native) port is a UI swap, not a rewrite.
 
-A modern, web-first remake of the classic grid puzzle: you're a mouse on a 20×20
-board, pushing block chains to trap pursuing cats and turn them into cheese for
-points, surviving as the cats speed up each level. An iOS build is planned.
-
-**Project status:** 🟢 Playable prototype, active development. The web app is a
-complete, runnable game; work now focuses on hardening it (tests) and layering in
-the modern mechanics described in [`docs/`](docs/).
+**Project status:** 🟢 Playable. Zustand engine, Framer Motion animation,
+data-driven levels, and an optional global leaderboard (FastAPI + Supabase).
 
 ---
 
 ## The Game in One Paragraph
 
-Move orthogonally on a 20×20 grid. Push connected lines of blocks to wall the
-cats in — once a cat is fully enclosed (or squeezed against a wall), it's trapped
-and becomes cheese you can eat for **+100** each. Clear all cats and cheese to
-advance; each level the cats tick faster. If a cat reaches your cell, it's game
-over. Best level cleared is saved locally.
+Move orthogonally on a 20×20 grid (arrow keys / WASD / swipe). Push connected
+lines of blocks to wall the cats in — once a cat is fully enclosed (or squeezed
+against a wall), it's trapped and becomes cheese you can eat for **+100** each.
+Clear all cats and cheese to advance; each level the cats tick faster and the
+layout changes. Grab the power-up to smash through inner walls briefly. If a cat
+reaches your cell, it's game over. Best level cleared is saved locally; submit
+your run to the global leaderboard if the backend is configured.
 
 ---
 
-## Current Tech Stack
+## Tech Stack
 
-| Layer | Current implementation |
+| Layer | Implementation |
 | :--- | :--- |
 | Language | TypeScript |
 | UI framework | React 19 |
 | Build tool | Vite 8 |
+| State | Zustand (`src/store/gameStore.ts`) wrapping a pure engine |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) |
-| Icons | lucide-react |
-| Rendering | CSS grid (`GameBoard.tsx`) |
-| Game loop | `setInterval` driving cat ticks |
-| State | React `useState` + immutable snapshots |
-| Persistence | `localStorage` (best level cleared) |
-| Tests | Vitest (engine unit tests) |
+| Animation | Framer Motion (actors only) |
+| Rendering | CSS grid + animated actor overlay (`GameBoard.tsx`) |
+| Game loop | `setInterval` cat ticks; rAF-paced input buffer |
+| Persistence | `localStorage` (best level) |
+| Backend (optional) | FastAPI + PostgreSQL/Supabase (`server/`) |
+| Tests | Vitest (engine, levels, score) |
 
 The architecture keeps a **pure engine as the single source of truth**:
-`src/game/` is framework-agnostic TypeScript, and the React layer is a thin view
-over immutable `GameSnapshot` values.
-
-> **Planned upgrades** (see [`docs/technical-spec.md`](docs/technical-spec.md)):
-> swap the CSS grid for a 2D canvas, replace `setInterval` with a
-> `requestAnimationFrame` + delta-time loop for 60fps, and bridge to iOS via
-> Capacitor. These are *not* in place yet.
+`src/game/` is framework-agnostic TypeScript and the React layer is a thin view
+over immutable `GameSnapshot` values. See
+[`docs/ios-port-roadmap.md`](docs/ios-port-roadmap.md) for the React Native plan.
 
 ---
 
@@ -55,29 +49,25 @@ over immutable `GameSnapshot` values.
 
 ```
 .
-├── README.md
-├── LICENSE
-├── HANDOFF.md                 Agent/dev hand-off notes
-├── HOW_TO_PLAY.txt            Player-facing instructions
-├── index.html                 Vite shell
-├── package.json
-├── vite.config.ts
-├── vitest.config.ts           Test runner config
+├── README.md / HANDOFF.md / HOW_TO_PLAY.txt / LICENSE
+├── index.html · package.json · vite/vitest/ts configs
+├── netlify.toml                Frontend deploy config
 ├── docs/
-│   ├── modernization-plan.md  Full architectural blueprint (the "why")
-│   └── technical-spec.md      Condensed implementation spec (the "what")
-├── public/                    Static assets (favicon.svg, icons.svg)
+│   ├── modernization-plan.md · technical-spec.md
+│   ├── qa-checklist.md         Browser QA + deploy checklist
+│   └── ios-port-roadmap.md     React Native (Expo) port map
+├── server/                     FastAPI leaderboard API
+│   ├── app/main.py             GET/POST /scores, CORS
+│   ├── requirements.txt · .env.example · schema.sql · render.yaml
 └── src/
-    ├── main.tsx               React entry
-    ├── App.tsx                HUD, cat timer, input, help, continue/restart
-    ├── index.css              Tailwind import + base layout
-    ├── components/
-    │   └── GameBoard.tsx      20×20 grid + touch swipe handling
-    └── game/                  Pure engine (source of truth)
-        ├── rodentEngine.ts    moveMouse, stepCats, checkTrapped, level build
-        ├── types.ts           Tile, Direction, GameSnapshot, GRID_SIZE
-        ├── catSpeed.ts        Per-level cat tick interval
-        └── highScoreLevels.ts localStorage best-level helper
+    ├── main.tsx · App.tsx · index.css · vite-env.d.ts
+    ├── store/gameStore.ts      Zustand store over the pure engine
+    ├── hooks/                  useCatLoop, useKeyboard (WASD + buffer)
+    ├── api/leaderboard.ts      Typed leaderboard client
+    ├── components/             GameBoard, MainMenu, LevelTransition, GameOver, Leaderboard
+    └── game/                   Pure engine (source of truth)
+        ├── rodentEngine.ts · types.ts · levels.ts
+        ├── catSpeed.ts · score.ts · highScoreLevels.ts
 ```
 
 ---
@@ -86,42 +76,35 @@ over immutable `GameSnapshot` values.
 
 ```bash
 npm install
-npm run dev       # Vite dev server (typically http://localhost:5173)
-npm run build     # tsc -b && vite build  -> dist/
+npm run dev       # Vite dev server (http://localhost:5173)
+npm run build     # tsc -b && vite build -> dist/
 npm run preview   # serve the production build
 npm run lint      # ESLint
-npm test          # run the Vitest engine suite
-npm run test:watch
+npm test          # Vitest suite
 ```
 
-No environment variables, backend, or API keys required.
+The game runs fully without a backend (the leaderboard shows "offline"). To
+enable the leaderboard, set `VITE_API_URL` to the API base URL and run the
+server (see [`server/README.md`](server/README.md)).
 
 ---
 
-## Roadmap (development "loops")
+## Deployment
 
-1. **Foundation** — test harness + engine unit tests, LICENSE, docs cleanup.
-2. **Tile metadata + first mechanics** — degradable blocks, Super Mouse power-up.
-3. **Elemental blocks & hazards** — ice/magnet blocks, sink holes, yarn balls.
-4. **Rendering/perf** — 2D canvas + rAF delta-time loop, Safari optimizations.
-5. **Audio/haptics/polish** — SFX, transitions, accessibility.
-6. **iOS** — Capacitor bridge (or the sibling Swift engine port).
-7. **Rename & release** — original name/art/audio, deploy, App Store.
+- **Frontend → Netlify:** `netlify.toml` (build `npm run build`, publish `dist`).
+  Set `VITE_API_URL` in the Netlify UI.
+- **Backend → Render:** `server/render.yaml`. Set `DATABASE_URL` (Supabase pooler)
+  and `ALLOWED_ORIGINS` (your Netlify origin).
+- **Database → Supabase:** run `server/schema.sql`.
 
-See [`docs/modernization-plan.md`](docs/modernization-plan.md) for the full
-reasoning and the proposed modern mechanics.
+Walk through [`docs/qa-checklist.md`](docs/qa-checklist.md) before each deploy.
 
 ---
 
 ## Naming & IP
 
-This project recreates a Microsoft-published game and currently uses its
-trademarked name as a working title. Before going public: pick an **original
-name** (rename the repo, the future Capacitor `appId`/`appName`, and in-game
-text) and use **original art and audio**. Keeping the repo private until the
-rename is the lowest-risk path.
-
----
+The repo has been renamed to **Vermin's Vengeance**. Before a public release,
+continue to use **original art and audio** (no assets from the inspiring game).
 
 ## License
 

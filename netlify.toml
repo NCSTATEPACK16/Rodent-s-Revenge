@@ -1,0 +1,18 @@
+# Netlify config for the Vermin's Vengeance frontend (Vite + React).
+# Set VITE_API_URL in the Netlify UI (Site settings → Environment variables) to
+# point at the Render leaderboard API; leave it unset to ship with the
+# leaderboard in offline mode.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Single-page app: serve index.html for any path (defensive — the game has no
+# client routing today, but this keeps deep links / refreshes working).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

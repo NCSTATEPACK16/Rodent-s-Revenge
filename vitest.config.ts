@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from 'vitest/config';
 
 // Engine tests are pure logic — no DOM needed, so we run them in Node.
