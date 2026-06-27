@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   fetchScores,
-  isLeaderboardEnabled,
   submitScore,
   type ScoreEntry,
   type ScoreSubmission,
@@ -16,15 +15,13 @@ const panel =
   'w-full max-w-xl rounded-lg border border-slate-800 bg-slate-900/70 p-4 font-mono text-xs text-slate-400'
 
 export function Leaderboard({ submission }: LeaderboardProps) {
-  const enabled = isLeaderboardEnabled()
   const [scores, setScores] = useState<ScoreEntry[]>([])
-  const [loading, setLoading] = useState(enabled)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [submitState, setSubmitState] = useState<'idle' | 'sending' | 'done'>('idle')
 
   const load = useCallback(async () => {
-    if (!enabled) return
     setLoading(true)
     setError(null)
     try {
@@ -34,12 +31,11 @@ export function Leaderboard({ submission }: LeaderboardProps) {
     } finally {
       setLoading(false)
     }
-  }, [enabled])
+  }, [])
 
   // Initial fetch. State is only set in the async continuation (after await),
   // not synchronously in the effect body, so it doesn't cascade renders.
   useEffect(() => {
-    if (!enabled) return
     let active = true
     fetchScores(10)
       .then((s) => active && setScores(s))
@@ -52,7 +48,7 @@ export function Leaderboard({ submission }: LeaderboardProps) {
     return () => {
       active = false
     }
-  }, [enabled])
+  }, [])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,16 +63,6 @@ export function Leaderboard({ submission }: LeaderboardProps) {
       setError(err instanceof Error ? err.message : 'Failed to submit')
       setSubmitState('idle')
     }
-  }
-
-  if (!enabled) {
-    return (
-      <div className={panel}>
-        <p className="text-slate-500">
-          Leaderboard offline — set <code>VITE_API_URL</code> to enable global scores.
-        </p>
-      </div>
-    )
   }
 
   return (

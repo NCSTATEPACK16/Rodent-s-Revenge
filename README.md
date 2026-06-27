@@ -35,8 +35,11 @@ your run to the global leaderboard if the backend is configured.
 | Rendering | CSS grid + animated actor overlay (`GameBoard.tsx`) |
 | Game loop | `setInterval` cat ticks; rAF-paced input buffer |
 | Persistence | `localStorage` (best level) |
-| Backend (optional) | FastAPI + PostgreSQL/Supabase (`server/`) |
+| Leaderboard | Netlify Function (`netlify/functions/scores.mts`) → Supabase |
 | Tests | Vitest (engine, levels, score) |
+
+> A standalone FastAPI version of the same API lives in `server/` as an
+> alternative (e.g. Render) — the Netlify Function is the active backend.
 
 The architecture keeps a **pure engine as the single source of truth**:
 `src/game/` is framework-agnostic TypeScript and the React layer is a thin view
@@ -91,11 +94,15 @@ server (see [`server/README.md`](server/README.md)).
 
 ## Deployment
 
-- **Frontend → Netlify:** `netlify.toml` (build `npm run build`, publish `dist`).
-  Set `VITE_API_URL` in the Netlify UI.
-- **Backend → Render:** `server/render.yaml`. Set `DATABASE_URL` (Supabase pooler)
-  and `ALLOWED_ORIGINS` (your Netlify origin).
-- **Database → Supabase:** run `server/schema.sql`.
+- **Database → Supabase:** run `server/schema.sql` in the SQL editor.
+- **Frontend + Leaderboard → Netlify:** `netlify.toml` builds the site and the
+  `/api/scores` function. Set `SUPABASE_SERVICE_ROLE_KEY` (and optionally
+  `SUPABASE_URL`) in the Netlify UI. No `VITE_API_URL` needed (same-origin `/api`).
+- **Local dev with the API:** `netlify dev` serves the function + frontend
+  together; plain `npm run dev` runs the game with the leaderboard returning an
+  error until the function is reachable.
+- **Alternative backend → Render:** `server/render.yaml` (FastAPI) if you prefer a
+  standalone API instead of the Netlify Function.
 
 Walk through [`docs/qa-checklist.md`](docs/qa-checklist.md) before each deploy.
 
